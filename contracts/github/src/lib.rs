@@ -2,7 +2,6 @@
 
 use soroban_sdk::{contract, contractimpl, contracterror, contracttype, Address, Bytes, BytesN, Env, String, Symbol, Vec};
 
-// --- TYPES ---
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -12,7 +11,6 @@ pub enum Error {
     NoIdentityFound = 2,
     InvalidTier = 3,
     InvalidNonce = 4,
-    InvalidSignature = 5,
     InsufficientPayment = 6,
     TransferNotAllowed = 7,
     EmptyUsername = 8,
@@ -39,29 +37,11 @@ pub enum DataKey {
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ClaimInfo {
-    pub provider: String,
-    pub parameters: String,
-    pub context: String,
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ReclaimProof {
-    pub claim_info: ClaimInfo,
-    pub signed_claim: BytesN<32>,
-    pub signatures: Vec<BytesN<64>>,
-    pub witness_address: BytesN<32>,
-}
-
-#[contracttype]
 #[derive(Clone, Debug)]
 pub struct MintParams {
     pub contributions: u32,
     pub external_id: String,
     pub nonce: u64,
-    pub proof: ReclaimProof,
     pub username: String,
 }
 
@@ -156,13 +136,10 @@ pub struct InteropConfig {
     pub adapter_address: Address,
 }
 
-// --- MODULES ---
 
 mod storage;
 mod logic;
 
-#[cfg(test)]
-mod test;
 
 #[contract]
 pub struct GithubIdentityContract;

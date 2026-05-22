@@ -13,22 +13,8 @@ pub fn mint(
 
     let config = storage::get_config(env)?;
 
-    // --- 🔒 VERIFICAÇÃO ON-CHAIN DA PROVA ZK (RECLAIM) ---
-    // 1. Validar Assinatura via Host Function Nativa (Ed25519)
-    let _signature = params.proof.signatures.get(0).ok_or(Error::InvalidSignature)?;
-    
-    #[cfg(not(any(test, feature = "testutils")))]
-    env.crypto().ed25519_verify(
-        &params.proof.witness_address,
-        &params.proof.signed_claim.clone().into(),
-        &_signature
-    );
-
-    // 2. Prevenção de Front-Running e Roubo de Prova
-    // Nota: Verificação simplificada de contexto pois soroban_sdk::String não tem .contains()
 
 
-    // 3. Validação de SoulID (Mapeamento 1:1)
     let res = env.try_invoke_contract::<Option<soroban_sdk::Val>, soroban_sdk::Error>(
         &config.soul_contract,
         &Symbol::new(env, "get_soul"),
@@ -48,22 +34,18 @@ pub fn mint(
         return Err(Error::SybilConflict);
     }
 
-    // 4. Verificação de Nonce
     let expected_nonce = storage::get_nonce(env, soul_id);
     if params.nonce != expected_nonce {
         return Err(Error::InvalidNonce);
     }
 
-    // 5. Cobrança de Taxa (se configurada)
     if config.mint_fee > 0 {
         let token_client = token::Client::new(env, &config.fee_token);
         token_client.transfer(&caller, &config.treasury, &config.mint_fee);
     }
 
-    // 6. Incrementar Nonce para invalidar replay
     storage::increment_nonce(env, soul_id);
 
-    // 7. Persistência dos Dados
     let token_id = storage::get_next_token_id(env);
     storage::increment_token_counter(env);
 
@@ -84,7 +66,6 @@ pub fn mint(
     storage::set_has_identity(env, soul_id, true);
     storage::set_sybil_mapping(env, &params.external_id, token_id);
 
-    // 8. Exportação de Reputação via Registry (Centralizado no Nexus)
     let _ = env.try_invoke_contract::<(), soroban_sdk::Error>(
         &config.registry,
         &Symbol::new(env, "export_reputation"),
@@ -100,7 +81,6 @@ pub fn mint(
             .into_val(env),
     );
 
-    // 9. Evento
     env.events().publish(
         (Symbol::new(env, "GithubMinted"), soul_id),
         (token_id, data.contributions)
