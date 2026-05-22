@@ -15,14 +15,18 @@ pub fn mint(
 
 
 
-    let res = env.try_invoke_contract::<Option<soroban_sdk::Val>, soroban_sdk::Error>(
+    let res = env.try_invoke_contract::<soroban_sdk::Val, soroban_sdk::Error>(
         &config.soul_contract,
         &Symbol::new(env, "get_soul"),
         soroban_sdk::vec![env, soul_id.into_val(env)],
     );
 
     match res {
-        Ok(Ok(Some(_))) => {}
+        Ok(Ok(val)) => {
+            if val.is_void() {
+                return Err(Error::Unauthorized);
+            }
+        },
         _ => return Err(Error::Unauthorized),
     }
 
@@ -66,20 +70,7 @@ pub fn mint(
     storage::set_has_identity(env, soul_id, true);
     storage::set_sybil_mapping(env, &params.external_id, token_id);
 
-    let _ = env.try_invoke_contract::<(), soroban_sdk::Error>(
-        &config.registry,
-        &Symbol::new(env, "export_reputation"),
-        (
-            caller,
-            soul_id,
-            env.current_contract_address(),
-            params.external_id,
-            data.kyc_level, // tier/reputation score
-            params.nonce,
-            cross_chain,
-        )
-            .into_val(env),
-    );
+
 
     env.events().publish(
         (Symbol::new(env, "BinanceMinted"), soul_id),
