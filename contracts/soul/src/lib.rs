@@ -1,6 +1,8 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracterror, contracttype, contractevent, Address, Bytes, BytesN, Env, String};
+use soroban_sdk::{
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
+};
 
 // --- TYPES ---
 
@@ -24,9 +26,9 @@ pub enum DataKey {
     PendingAdmin,
     Relayer,
     TotalSouls,
-    SoulById(u32),                 // SoulID -> SoulData
-    SoulByPasskey(BytesN<65>),     // Passkey PubKey -> SoulID
-    SoulByAddress(Address),        // Owner Address -> SoulID
+    SoulById(u32),             // SoulID -> SoulData
+    SoulByPasskey(BytesN<65>), // Passkey PubKey -> SoulID
+    SoulByAddress(Address),    // Owner Address -> SoulID
 }
 
 #[contracttype]
@@ -34,27 +36,10 @@ pub enum DataKey {
 pub struct SoulData {
     pub id: u32,
     pub owner: Address,
-    pub passkey: BytesN<65>,           // secp256r1 pubkey
-    pub recovery_pubkey: BytesN<65>,   // secp256r1 pubkey for recovery
+    pub passkey: BytesN<65>,         // secp256r1 pubkey
+    pub recovery_pubkey: BytesN<65>, // secp256r1 pubkey for recovery
     pub minted_at: u64,
     pub nonce: u32,
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Ecosystem {
-    Evm,
-    Cosmos,
-    Solana,
-}
-
-#[contracttype]
-#[derive(Clone, Debug)]
-pub struct CrossChainParams {
-    pub destination_chain: String,
-    pub destination_address: String,
-    pub user_destination_address: Bytes,
-    pub ecosystem: Ecosystem,
 }
 
 #[contractevent]
@@ -76,10 +61,17 @@ pub struct RelayerEvent {
     pub new_relayer: Address,
 }
 
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdminTransferredEvent {
+    pub old_admin: Address,
+    pub new_admin: Address,
+}
+
 // --- MODULES ---
 
-mod storage;
 mod logic;
+mod storage;
 
 #[cfg(test)]
 mod test;
@@ -153,6 +145,18 @@ impl ZolvencySoulContract {
 
     pub fn update_relayer(env: Env, admin: Address, new_relayer: Address) -> Result<(), Error> {
         logic::update_relayer(&env, admin, new_relayer)
+    }
+
+    pub fn renew_soul(env: Env, id: u32) -> Result<(), Error> {
+        logic::renew_soul(&env, id)
+    }
+
+    pub fn transfer_admin(env: Env, admin: Address, new_admin: Address) -> Result<(), Error> {
+        logic::transfer_admin(&env, admin, new_admin)
+    }
+
+    pub fn accept_admin(env: Env, new_admin: Address) -> Result<(), Error> {
+        logic::accept_admin(&env, new_admin)
     }
 
     pub fn upgrade(env: Env, admin: Address, new_wasm_hash: BytesN<32>) -> Result<(), Error> {

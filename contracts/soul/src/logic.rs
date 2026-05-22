@@ -1,6 +1,8 @@
-use soroban_sdk::{Address, Env, BytesN, Bytes};
-use crate::{Error, SoulData, MintedEvent, RecoveryEvent, RelayerEvent};
 use crate::storage;
+use crate::{
+    AdminTransferredEvent, DataKey, Error, MintedEvent, RecoveryEvent, RelayerEvent, SoulData,
+};
+use soroban_sdk::{Address, Bytes, BytesN, Env};
 
 pub fn mint(
     env: &Env,
@@ -51,7 +53,7 @@ pub fn recover_soul(
 ) -> Result<(), Error> {
     relayer.require_auth();
     storage::extend_instance(env);
-    
+
     let stored_relayer = storage::get_relayer(env)?;
     if relayer != stored_relayer {
         return Err(Error::NotAuthorized);
@@ -75,18 +77,19 @@ pub fn recover_soul(
     msg.append(&Bytes::from_array(env, &nonce_bytes));
     let msg_hash = env.crypto().sha256(&msg);
 
-    env.crypto().secp256r1_verify(
-        &soul_data.recovery_pubkey,
-        &msg_hash,
-        &recovery_signature
-    );
+    env.crypto()
+        .secp256r1_verify(&soul_data.recovery_pubkey, &msg_hash, &recovery_signature);
 
     storage::remove_passkey_mapping(env, &old_passkey);
     soul_data.passkey = new_passkey.clone();
     soul_data.nonce += 1;
     storage::set_soul(env, &soul_data);
 
-    RecoveryEvent { soul_id, new_passkey: new_passkey.clone() }.publish(env);
+    RecoveryEvent {
+        soul_id,
+        new_passkey: new_passkey.clone(),
+    }
+    .publish(env);
 
     Ok(())
 }
@@ -94,15 +97,70 @@ pub fn recover_soul(
 pub fn update_relayer(env: &Env, admin: Address, new_relayer: Address) -> Result<(), Error> {
     storage::extend_instance(env);
     admin.require_auth();
-    
+
     let stored_admin = storage::get_admin(env)?;
     if admin != stored_admin {
         return Err(Error::NotAuthorized);
     }
 
     storage::set_relayer(env, &new_relayer);
-    
-    RelayerEvent { new_relayer: new_relayer.clone() }.publish(env);
-    
+
+    RelayerEvent {
+        new_relayer: new_relayer.clone(),
+    }
+    .publish(env);
+
+    Ok(())
+}
+
+pub fn renew_soul(env: &Env, soul_id: u32) -> Result<(), Error> {
+    let soul_data = storage::get_soul_by_id(env, soul_id).ok_or(Error::SoulNotFound)?;
+
+    storage::extend_persistent(env, &DataKey::SoulById(soul_id));
+    storage::extend_persistent(env, &DataKey::SoulByPasskey(soul_data.passkey));
+    storage::extend_persistent(env, &DataKey::SoulByAddress(soul_data.owner));
+
+    Ok(())
+}
+
+pub fn transfer_admin(env: &Env, admin: Address, new_admin: Address) -> Result<(), Error> {
+    storage::extend_instance(env);
+    admin.require_auth();
+
+    let stored_admin = storage::get_admin(env)?;
+    if admin != stored_admin {
+        return Err(Error::NotAuthorized);
+    }
+
+    env.storage()
+        .instance()
+        .set(&DataKey::PendingAdmin, &new_admin);
+
+    Ok(())
+}
+
+pub fn accept_admin(env: &Env, new_admin: Address) -> Result<(), Error> {
+    storage::extend_instance(env);
+    new_admin.require_auth();
+
+    let pending_admin: Address = env
+        .storage()
+        .instance()
+        .get(&DataKey::PendingAdmin)
+        .ok_or(Error::NotAuthorized)?;
+    if new_admin != pending_admin {
+        return Err(Error::NotAuthorized);
+    }
+
+    let old_admin = storage::get_admin(env)?;
+    storage::set_admin(env, &new_admin);
+    env.storage().instance().remove(&DataKey::PendingAdmin);
+
+    AdminTransferredEvent {
+        old_admin,
+        new_admin: new_admin.clone(),
+    }
+    .publish(env);
+
     Ok(())
 }
