@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracterror, contracttype, Address, Bytes, BytesN, Env, String};
+use soroban_sdk::{contract, contractimpl, contracterror, contracttype, contractevent, Address, Bytes, BytesN, Env, String};
 
 // --- TYPES ---
 
@@ -55,6 +55,25 @@ pub struct CrossChainParams {
     pub destination_address: String,
     pub user_destination_address: Bytes,
     pub ecosystem: Ecosystem,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MintedEvent {
+    pub soul_id: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryEvent {
+    pub soul_id: u32,
+    pub new_passkey: BytesN<65>,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RelayerEvent {
+    pub new_relayer: Address,
 }
 
 // --- MODULES ---

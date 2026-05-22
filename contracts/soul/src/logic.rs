@@ -1,5 +1,5 @@
-use soroban_sdk::{Address, Env, BytesN, Bytes, symbol_short};
-use crate::{Error, SoulData};
+use soroban_sdk::{Address, Env, BytesN, Bytes};
+use crate::{Error, SoulData, MintedEvent, RecoveryEvent, RelayerEvent};
 use crate::storage;
 
 pub fn mint(
@@ -37,7 +37,7 @@ pub fn mint(
 
     storage::set_soul(env, &soul_data);
 
-    env.events().publish((symbol_short!("minted"),), id);
+    MintedEvent { soul_id: id }.publish(env);
 
     Ok(id)
 }
@@ -86,7 +86,7 @@ pub fn recover_soul(
     soul_data.nonce += 1;
     storage::set_soul(env, &soul_data);
 
-    env.events().publish((symbol_short!("recovery"), soul_id), new_passkey);
+    RecoveryEvent { soul_id, new_passkey: new_passkey.clone() }.publish(env);
 
     Ok(())
 }
@@ -102,7 +102,7 @@ pub fn update_relayer(env: &Env, admin: Address, new_relayer: Address) -> Result
 
     storage::set_relayer(env, &new_relayer);
     
-    env.events().publish((symbol_short!("relayer"),), new_relayer.clone());
+    RelayerEvent { new_relayer: new_relayer.clone() }.publish(env);
     
     Ok(())
 }
