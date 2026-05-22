@@ -1,0 +1,19 @@
+[package]
+name = "zolvency-binance"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Felipe Nunes"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { version = "25.3.1" }
+
+[dev-dependencies]
+soroban-sdk = { version = "25.3.1", features = ["testutils"] }
+
+[features]
+testutils = ["soroban-sdk/testutils"]
+
