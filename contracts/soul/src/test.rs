@@ -184,6 +184,30 @@ fn test_soul_already_exists() {
 }
 
 #[test]
+#[should_panic(expected = "Error(Contract, #3)")] // SoulAlreadyExists
+fn test_passkey_already_in_use() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(ZolvencySoulContract, ());
+    let client = ZolvencySoulContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let relayer = Address::generate(&env);
+
+    client.initialize(&admin, &relayer);
+
+    let passkey = BytesN::from_array(&env, &[0u8; 65]);
+    let recovery_pubkey = BytesN::from_array(&env, &[1u8; 65]);
+
+    let owner1 = Address::generate(&env);
+    client.mint(&relayer, &owner1, &passkey, &recovery_pubkey);
+    
+    let owner2 = Address::generate(&env);
+    client.mint(&relayer, &owner2, &passkey, &recovery_pubkey);
+}
+
+#[test]
 fn test_initialize_already_initialized() {
     let env = Env::default();
     env.mock_all_auths();

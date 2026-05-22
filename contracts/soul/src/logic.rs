@@ -21,6 +21,10 @@ pub fn mint(
         return Err(Error::SoulAlreadyExists);
     }
 
+    if storage::get_soul_id_by_passkey(env, &passkey).is_some() {
+        return Err(Error::SoulAlreadyExists);
+    }
+
     let id = storage::increment_total_souls(env);
     let soul_data = SoulData {
         id,
