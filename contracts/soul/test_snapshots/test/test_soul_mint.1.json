@@ -117,14 +117,6 @@
                   },
                   {
                     "key": {
-                      "symbol": "nonce"
-                    },
-                    "val": {
-                      "u32": 0
-                    }
-                  },
-                  {
-                    "key": {
                       "symbol": "owner"
                     },
                     "val": {
