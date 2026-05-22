@@ -4,7 +4,6 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
 };
 
-
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
@@ -67,6 +66,12 @@ pub struct AdminTransferredEvent {
     pub new_admin: Address,
 }
 
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryKeyRotatedEvent {
+    pub soul_id: u32,
+    pub new_recovery_pubkey: BytesN<65>,
+}
 
 mod logic;
 mod storage;
@@ -106,6 +111,16 @@ impl ZolvencySoulContract {
         signature: BytesN<64>,
     ) -> Result<(), Error> {
         logic::recover_soul(&env, relayer, old_passkey, new_passkey, signature)
+    }
+
+    pub fn rotate_recovery_key(
+        env: Env,
+        relayer: Address,
+        passkey: BytesN<65>,
+        new_recovery_pubkey: BytesN<65>,
+        signature: BytesN<64>,
+    ) -> Result<(), Error> {
+        logic::rotate_recovery_key(&env, relayer, passkey, new_recovery_pubkey, signature)
     }
 
     pub fn get_soul(env: Env, id: u32) -> Option<SoulData> {

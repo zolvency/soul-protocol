@@ -1,6 +1,7 @@
 use crate::storage;
 use crate::{
-    AdminTransferredEvent, DataKey, Error, MintedEvent, RecoveryEvent, RelayerEvent, SoulData,
+    AdminTransferredEvent, DataKey, Error, MintedEvent, RecoveryEvent, RecoveryKeyRotatedEvent,
+    RelayerEvent, SoulData,
 };
 use soroban_sdk::{Address, Bytes, BytesN, Env};
 
@@ -88,6 +89,47 @@ pub fn recover_soul(
     RecoveryEvent {
         soul_id,
         new_passkey: new_passkey.clone(),
+    }
+    .publish(env);
+
+    Ok(())
+}
+
+pub fn rotate_recovery_key(
+    env: &Env,
+    relayer: Address,
+    passkey: BytesN<65>,
+    new_recovery_pubkey: BytesN<65>,
+    signature: BytesN<64>,
+) -> Result<(), Error> {
+    relayer.require_auth();
+    storage::extend_instance(env);
+
+    let stored_relayer = storage::get_relayer(env)?;
+    if relayer != stored_relayer {
+        return Err(Error::NotAuthorized);
+    }
+
+    let soul_id = storage::get_soul_id_by_passkey(env, &passkey).ok_or(Error::SoulNotFound)?;
+    let mut soul_data = storage::get_soul_by_id(env, soul_id).unwrap();
+
+    let mut msg = Bytes::new(env);
+    msg.append(&soul_data.recovery_pubkey.clone().into());
+    msg.append(&new_recovery_pubkey.clone().into());
+    let nonce_bytes = soul_data.nonce.to_be_bytes();
+    msg.append(&Bytes::from_array(env, &nonce_bytes));
+    let msg_hash = env.crypto().sha256(&msg);
+
+    env.crypto()
+        .secp256r1_verify(&soul_data.passkey, &msg_hash, &signature);
+
+    soul_data.recovery_pubkey = new_recovery_pubkey.clone();
+    soul_data.nonce += 1;
+    storage::set_soul(env, &soul_data);
+
+    RecoveryKeyRotatedEvent {
+        soul_id,
+        new_recovery_pubkey,
     }
     .publish(env);
 
