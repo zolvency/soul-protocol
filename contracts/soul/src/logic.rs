@@ -32,6 +32,7 @@ pub fn mint(
         passkey,
         recovery_pubkey,
         minted_at: env.ledger().timestamp(),
+        nonce: 0,
     };
 
     storage::set_soul(env, &soul_data);
@@ -70,6 +71,8 @@ pub fn recover_soul(
     let mut msg = Bytes::new(env);
     msg.append(&old_passkey.clone().into());
     msg.append(&new_passkey.clone().into());
+    let nonce_bytes = soul_data.nonce.to_be_bytes();
+    msg.append(&Bytes::from_array(env, &nonce_bytes));
     let msg_hash = env.crypto().sha256(&msg);
 
     env.crypto().secp256r1_verify(
@@ -80,6 +83,7 @@ pub fn recover_soul(
 
     storage::remove_passkey_mapping(env, &old_passkey);
     soul_data.passkey = new_passkey.clone();
+    soul_data.nonce += 1;
     storage::set_soul(env, &soul_data);
 
     env.events().publish((symbol_short!("recovery"), soul_id), new_passkey);

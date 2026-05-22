@@ -37,6 +37,7 @@ pub struct SoulData {
     pub passkey: BytesN<65>,           // secp256r1 pubkey
     pub recovery_pubkey: BytesN<65>,   // secp256r1 pubkey for recovery
     pub minted_at: u64,
+    pub nonce: u32,
 }
 
 #[contracttype]
