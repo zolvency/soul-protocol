@@ -44,6 +44,10 @@ pub fn mint(
         return Err(Error::AlreadyHasIdentity);
     }
 
+    if storage::get_sybil_token(env, &params.external_id).is_some() {
+        return Err(Error::SybilConflict);
+    }
+
     // 4. Verificação de Nonce
     let expected_nonce = storage::get_nonce(env, soul_id);
     if params.nonce != expected_nonce {
