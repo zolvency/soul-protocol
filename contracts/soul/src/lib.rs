@@ -4,7 +4,6 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
 };
 
-// --- TYPES ---
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -26,9 +25,9 @@ pub enum DataKey {
     PendingAdmin,
     Relayer,
     TotalSouls,
-    SoulById(u32),             // SoulID -> SoulData
-    SoulByPasskey(BytesN<65>), // Passkey PubKey -> SoulID
-    SoulByAddress(Address),    // Owner Address -> SoulID
+    SoulById(u32),
+    SoulByPasskey(BytesN<65>),
+    SoulByAddress(Address),
 }
 
 #[contracttype]
@@ -36,8 +35,8 @@ pub enum DataKey {
 pub struct SoulData {
     pub id: u32,
     pub owner: Address,
-    pub passkey: BytesN<65>,         // secp256r1 pubkey
-    pub recovery_pubkey: BytesN<65>, // secp256r1 pubkey for recovery
+    pub passkey: BytesN<65>,
+    pub recovery_pubkey: BytesN<65>,
     pub minted_at: u64,
     pub nonce: u32,
 }
@@ -68,7 +67,6 @@ pub struct AdminTransferredEvent {
     pub new_admin: Address,
 }
 
-// --- MODULES ---
 
 mod logic;
 mod storage;

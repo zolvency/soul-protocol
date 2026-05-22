@@ -63,7 +63,7 @@ fn test_get_soul_by_passkey() {
 }
 
 #[test]
-#[should_panic] // Should panic because of invalid signature
+#[should_panic]
 fn test_recover_soul_invalid_signature() {
     let env = Env::default();
     env.mock_all_auths();
@@ -100,7 +100,6 @@ fn test_recover_soul_success() {
 
     client.initialize(&admin, &relayer);
 
-    // Test vector generated via python cryptography (Prehashed, normalized to low-S)
     let recovery_pubkey = BytesN::from_array(
         &env,
         &[
@@ -130,20 +129,17 @@ fn test_recover_soul_success() {
     let id = client.mint(&relayer, &owner, &old_passkey, &recovery_pubkey);
     assert_eq!(id, 1);
 
-    // Recover soul (updates passkey)
     client.recover_soul(&relayer, &old_passkey, &new_passkey, &signature);
 
-    // Verify update
     let soul = client.get_soul(&id).unwrap();
     assert_eq!(soul.passkey, new_passkey);
 
-    // Verify mapping update
     assert_eq!(client.get_soul_id_by_passkey(&old_passkey), None);
     assert_eq!(client.get_soul_id_by_passkey(&new_passkey), Some(1));
 }
 
 #[test]
-#[should_panic(expected = "Error(Contract, #2)")] // NotAuthorized
+#[should_panic(expected = "Error(Contract, #2)")]
 fn test_recover_soul_unauthorized_relayer() {
     let env = Env::default();
     env.mock_all_auths();
