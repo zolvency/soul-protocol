@@ -53,14 +53,17 @@ pub fn set_soul(env: &Env, soul: &SoulData) {
     let id_key = DataKey::SoulById(soul.id);
     let pk_key = DataKey::SoulByPasskey(soul.passkey.clone());
     let addr_key = DataKey::SoulByAddress(soul.owner.clone());
+    let cred_key = DataKey::SoulByCredential(soul.credential_id.clone());
 
     env.storage().persistent().set(&id_key, soul);
     env.storage().persistent().set(&pk_key, &soul.id);
     env.storage().persistent().set(&addr_key, &soul.id);
+    env.storage().persistent().set(&cred_key, &soul.id);
 
     extend_persistent(env, &id_key);
     extend_persistent(env, &pk_key);
     extend_persistent(env, &addr_key);
+    extend_persistent(env, &cred_key);
 }
 
 pub fn get_soul_id_by_address(env: &Env, address: &Address) -> Option<u32> {
@@ -75,12 +78,21 @@ pub fn get_soul_id_by_passkey(env: &Env, passkey: &BytesN<65>) -> Option<u32> {
         .get(&DataKey::SoulByPasskey(passkey.clone()))
 }
 
+pub fn get_soul_id_by_credential(env: &Env, credential_id: &soroban_sdk::Bytes) -> Option<u32> {
+    env.storage()
+        .persistent()
+        .get(&DataKey::SoulByCredential(credential_id.clone()))
+}
+
 pub fn get_soul_by_id(env: &Env, id: u32) -> Option<SoulData> {
     env.storage().persistent().get(&DataKey::SoulById(id))
 }
 
-pub fn remove_passkey_mapping(env: &Env, passkey: &BytesN<65>) {
+pub fn remove_passkey_mapping(env: &Env, passkey: &BytesN<65>, credential_id: &soroban_sdk::Bytes) {
     env.storage()
         .persistent()
         .remove(&DataKey::SoulByPasskey(passkey.clone()));
+    env.storage()
+        .persistent()
+        .remove(&DataKey::SoulByCredential(credential_id.clone()));
 }

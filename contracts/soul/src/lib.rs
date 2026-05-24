@@ -27,6 +27,7 @@ pub enum DataKey {
     SoulById(u32),
     SoulByPasskey(BytesN<65>),
     SoulByAddress(Address),
+    SoulByCredential(soroban_sdk::Bytes),
 }
 
 #[contracttype]
@@ -35,6 +36,7 @@ pub struct SoulData {
     pub id: u32,
     pub owner: Address,
     pub passkey: BytesN<65>,
+    pub credential_id: soroban_sdk::Bytes,
     pub recovery_pubkey: BytesN<65>,
     pub minted_at: u64,
     pub nonce: u32,
@@ -98,9 +100,10 @@ impl ZolvencySoulContract {
         relayer: Address,
         owner: Address,
         passkey: BytesN<65>,
+        credential_id: soroban_sdk::Bytes,
         recovery_pubkey: BytesN<65>,
     ) -> Result<u32, Error> {
-        logic::mint(&env, relayer, owner, passkey, recovery_pubkey)
+        logic::mint(&env, relayer, owner, passkey, credential_id, recovery_pubkey)
     }
 
     pub fn recover_soul(
@@ -108,9 +111,10 @@ impl ZolvencySoulContract {
         relayer: Address,
         old_passkey: BytesN<65>,
         new_passkey: BytesN<65>,
+        new_credential_id: soroban_sdk::Bytes,
         signature: BytesN<64>,
     ) -> Result<(), Error> {
-        logic::recover_soul(&env, relayer, old_passkey, new_passkey, signature)
+        logic::recover_soul(&env, relayer, old_passkey, new_passkey, new_credential_id, signature)
     }
 
     pub fn rotate_recovery_key(
@@ -133,6 +137,11 @@ impl ZolvencySoulContract {
 
     pub fn get_soul_by_passkey(env: Env, passkey: BytesN<65>) -> Option<SoulData> {
         let id = storage::get_soul_id_by_passkey(&env, &passkey)?;
+        storage::get_soul_by_id(&env, id)
+    }
+
+    pub fn get_soul_by_credential(env: Env, credential_id: soroban_sdk::Bytes) -> Option<SoulData> {
+        let id = storage::get_soul_id_by_credential(&env, &credential_id)?;
         storage::get_soul_by_id(&env, id)
     }
 

@@ -10,6 +10,7 @@ pub fn mint(
     relayer: Address,
     owner: Address,
     passkey: BytesN<65>,
+    credential_id: soroban_sdk::Bytes,
     recovery_pubkey: BytesN<65>,
 ) -> Result<u32, Error> {
     relayer.require_auth();
@@ -33,6 +34,7 @@ pub fn mint(
         id,
         owner,
         passkey,
+        credential_id,
         recovery_pubkey,
         minted_at: env.ledger().timestamp(),
         nonce: 0,
@@ -50,6 +52,7 @@ pub fn recover_soul(
     relayer: Address,
     old_passkey: BytesN<65>,
     new_passkey: BytesN<65>,
+    new_credential_id: soroban_sdk::Bytes,
     recovery_signature: BytesN<64>,
 ) -> Result<(), Error> {
     relayer.require_auth();
@@ -81,8 +84,9 @@ pub fn recover_soul(
     env.crypto()
         .secp256r1_verify(&soul_data.recovery_pubkey, &msg_hash, &recovery_signature);
 
-    storage::remove_passkey_mapping(env, &old_passkey);
+    storage::remove_passkey_mapping(env, &old_passkey, &soul_data.credential_id);
     soul_data.passkey = new_passkey.clone();
+    soul_data.credential_id = new_credential_id;
     soul_data.nonce += 1;
     storage::set_soul(env, &soul_data);
 
@@ -161,6 +165,7 @@ pub fn renew_soul(env: &Env, soul_id: u32) -> Result<(), Error> {
     storage::extend_persistent(env, &DataKey::SoulById(soul_id));
     storage::extend_persistent(env, &DataKey::SoulByPasskey(soul_data.passkey));
     storage::extend_persistent(env, &DataKey::SoulByAddress(soul_data.owner));
+    storage::extend_persistent(env, &DataKey::SoulByCredential(soul_data.credential_id));
 
     Ok(())
 }
